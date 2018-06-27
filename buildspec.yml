@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo Install python modules for this build...
+      - pip install pytest aws-sam-cli
+
+  pre_build:
+    commands:
+      - echo Run unit test...
+      - echo python -m pytest -v ./tests
+
+  build:
+    commands:
+      - echo Install requirements for app...
+      - pip install -r requirements.txt -t $APP/build/
+      - cp $APP/*.py $APP/build/
+      - echo Validate template.yaml...
+      - sam validate
+      - echo Gen packaged.yaml...
+      - sam package --template-file template.yaml
+        --output-template-file packaged.yaml
+        --s3-bucket $S3_BUCKET
+        --region $REGION
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+
+artifacts:
+    files: packaged.yaml

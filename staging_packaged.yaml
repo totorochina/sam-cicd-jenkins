@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'apidemo
+
+  '
+Globals:
+  Function:
+    Timeout: 10
+Outputs:
+  GetFixIp:
+    Description: Get a fixed IP for demo
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  GetInternetIp:
+    Description: Get Lambda's internet IP
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/{proxy+}
+Resources:
+  APIG4XXErrorAlarm:
+    Properties:
+      ActionsEnabled: true
+      AlarmDescription: APIG too many 4xx errors
+      AlarmName: sam-apidemo-staging too many 4xx errors
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: ApiName
+        Value:
+          Fn::Sub: ${AWS::StackName}
+      - Name: Stage
+        Value: Prod
+      EvaluationPeriods: '1'
+      MetricName: 4XXError
+      Namespace: AWS/ApiGateway
+      Period: '60'
+      Statistic: Sum
+      Threshold: '1'
+      TreatMissingData: notBreaching
+      Unit: Count
+    Type: AWS::CloudWatch::Alarm
+  APIG5XXErrorAlarm:
+    Properties:
+      ActionsEnabled: true
+      AlarmDescription: APIG too many 5xx errors
+      AlarmName: sam-apidemo-staging too many 5xx errors
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: ApiName
+        Value:
+          Fn::Sub: ${AWS::StackName}
+      - Name: Stage
+        Value: Prod
+      EvaluationPeriods: '1'
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Period: '60'
+      Statistic: Sum
+      Threshold: '1'
+      TreatMissingData: notBreaching
+      Unit: Count
+    Type: AWS::CloudWatch::Alarm
+  GetIpFunction:
+    Properties:
+      AutoPublishAlias: live
+      CodeUri: s3://hzchen-private-ore/d54279914776f346309d9d396ddd6482
+      DeploymentPreference:
+        Alarms:
+        - Ref: APIG4XXErrorAlarm
+        - Ref: APIG5XXErrorAlarm
+        Type: AllAtOnce
+      Environment:
+        Variables:
+          PARAM1: VALUE
+      Events:
+        GetFixIp:
+          Properties:
+            Method: ANY
+            Path: /
+          Type: Api
+        GetInternetIp:
+          Properties:
+            Method: ANY
+            Path: /{proxy+}
+          Type: Api
+      FunctionName: api_demo_staging
+      Handler: app.lambda_handler
+      Runtime: python2.7
+      Tracing: Active
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
